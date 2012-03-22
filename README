@@ -18,39 +18,41 @@ bluetooth = new Rfcomm(context);
 
 
 bluetooth.addEventListener(new BluetoothEventListener() 
+{
+
+	@Override
+	public void incomingDataEvent(BluetoothEvent evt)
+	{
+		System.out.println("Data incomming "+new String(bluetooth.read()));
+	}
+
+	@Override
+	public void discoveryFinished(BluetoothEvent evt) {
+	
+	
+		for( BluetoothDevice device : bluetooth.getDevices())
 		{
-
-			@Override
-			public void incomingDataEvent(BluetoothEvent evt)
-			{
-				System.out.println("Data incomming "+new String(bluetooth.read()));
-			}
-
-			@Override
-			public void discoveryFinished(BluetoothEvent evt) {
+			System.out.println("Device "+device.getName()+" "+device.getAddress());
+		}
 	
-	
-				for( BluetoothDevice device : bluetooth.getDevices())
-				{
-					System.out.println("Device "+device.getName()+" "+device.getAddress());
+	}
 
-					if(device.getName().equals("Mydevice"))
-					{
-							bluetooth.open(device.getName());
-					}
-				}
-	
-			}
+	@Override
+	public void disconnected()
+	 {
+		System.out.println("Disconnected");
 
-			@Override
-			public void disconnected() {
-				System.out.println("Disconnected");
-
-			}
-		});
+	}
+});
 
 
-		bluetooth.discovering();
+bluetooth.discovering();
+.....
+
+bluetooth.write("Hello World".getbyte());
+
+...
+bluetooth.close();
 
 
 
