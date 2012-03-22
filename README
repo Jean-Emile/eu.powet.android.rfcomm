@@ -1,0 +1,13 @@
+
+public interface IRfcomm {
+	public void open(String address);
+	public byte[] read();
+	public void write(byte[] data);
+	public void close();
+	public boolean isconnected();
+	public Set<BluetoothDevice> getDevices();
+	public void discovering();
+	public void addEventListener (BluetoothEventListener listener);
+	public void removeEventListener (BluetoothEventListener listener);
+}
+
