@@ -1,4 +1,3 @@
-
 public interface IRfcomm {
 	public void open(String address);
 	public byte[] read();
@@ -10,4 +9,48 @@ public interface IRfcomm {
 	public void addEventListener (BluetoothEventListener listener);
 	public void removeEventListener (BluetoothEventListener listener);
 }
+
+
+
+private IRfcomm bluetooth;
+
+bluetooth = new Rfcomm(context);
+
+
+bluetooth.addEventListener(new BluetoothEventListener() 
+		{
+
+			@Override
+			public void incomingDataEvent(BluetoothEvent evt)
+			{
+				System.out.println("Data incomming "+new String(bluetooth.read()));
+			}
+
+			@Override
+			public void discoveryFinished(BluetoothEvent evt) {
+	
+	
+				for( BluetoothDevice device : bluetooth.getDevices())
+				{
+					System.out.println("Device "+device.getName()+" "+device.getAddress());
+
+					if(device.getName().equals("Mydevice"))
+					{
+							bluetooth.open(device.getName());
+					}
+				}
+	
+			}
+
+			@Override
+			public void disconnected() {
+				System.out.println("Disconnected");
+
+			}
+		});
+
+
+		bluetooth.discovering();
+
+
 
