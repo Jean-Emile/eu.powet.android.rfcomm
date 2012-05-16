@@ -1,9 +1,21 @@
 package eu.powet.android.rfcomm;
 
-public interface BluetoothEventListener extends java.util.EventListener
-{
-	void incomingDataEvent(BluetoothEvent evt);
-	void discoveryFinished(BluetoothEvent evt);
-	void disconnected();
-}
+import android.bluetooth.BluetoothDevice;
 
+public interface BluetoothEventListener extends java.util.EventListener {
+	
+	
+	void incomingDataEvent(BluetoothEvent evt);
+
+	void discoveryFinished(BluetoothEvent evt);
+
+	void disconnected();
+
+	void newDeviceFound(BluetoothDevice device);
+	
+	void discoverable();
+
+	void pairedDeviceFound(BluetoothDevice device);
+
+	void connected(BluetoothDevice device);
+}
