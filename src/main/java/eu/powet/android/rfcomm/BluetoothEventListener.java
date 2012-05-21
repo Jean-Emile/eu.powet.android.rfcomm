@@ -15,7 +15,5 @@ public interface BluetoothEventListener extends java.util.EventListener {
 	
 	void discoverable();
 
-	void pairedDeviceFound(BluetoothDevice device);
-
 	void connected(BluetoothDevice device);
 }

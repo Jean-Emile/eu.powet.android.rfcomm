@@ -31,5 +31,9 @@ public interface IRfcomm {
 
 	public void removeEventListener(BluetoothEventListener listener);
 
-	public BluetoothDevice getDevices(String address);
+	public BluetoothDevice getDevice(String address);
+	
+	public void startServerSocket();
+	
+	public void unregisterReceiver();
 }

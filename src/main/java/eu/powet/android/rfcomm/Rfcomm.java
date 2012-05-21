@@ -3,8 +3,6 @@ package eu.powet.android.rfcomm;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -46,6 +44,7 @@ public class Rfcomm implements IRfcomm {
 	private ConnectThread connectThread;
 	private AcceptThread acceptThread;
 	private ConnectedThread connectedThread;
+	private boolean receiverRegistered = false;
 
 
 	public Rfcomm(Context _ctx) 
@@ -74,6 +73,7 @@ public class Rfcomm implements IRfcomm {
 		// Register for broadcasts when discovery has finished
 		filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
 		ctx.registerReceiver(mReceiver, filter);
+		receiverRegistered = true;
 
 		// Get a set of currently paired devices
 		Set<BluetoothDevice> pairedDevices = localAdapter.getBondedDevices();
@@ -84,8 +84,6 @@ public class Rfcomm implements IRfcomm {
 				devices.add(device);
 			}
 		}
-		
-		start();
 	} 
 
 	public void addEventListener (BluetoothEventListener listener) {
@@ -124,10 +122,6 @@ public class Rfcomm implements IRfcomm {
 						((BluetoothEventListener) listeners[i + 1]).discoverable();
 						break;
 	
-					case PAIRED_DEVICE:
-						((BluetoothEventListener) listeners[i + 1]).pairedDeviceFound(device);
-						break;
-	
 					case CONNECTED:
 						((BluetoothEventListener) listeners[i + 1]).connected(device);
 						break;
@@ -150,17 +144,6 @@ public class Rfcomm implements IRfcomm {
         }
     }
 
-	private void open() {
-		try {
-			outStream = socket.getOutputStream();
-			Log.i(TAG, "Output stream open.");
-			inStream = socket.getInputStream();
-			Log.i(TAG, "Input stream open.");
-		} catch (IOException e) {
-			Log.e(TAG, "Failed to create output stream.", e);
-		}
-	}
-
 	@Override
 	public void write(byte[] msg) {
         // Create temporary object
@@ -181,8 +164,8 @@ public class Rfcomm implements IRfcomm {
 		return fifo_data_read.removeAll();
 	}
 	
-    private synchronized void start() {
-        Log.d(TAG, "start method in Rfcomm");
+    public synchronized void startServerSocket() {
+        Log.d(TAG, "startServerSocket method in Rfcomm");
 
         // Cancel any thread attempting to make a connection
         if (connectThread != null) {connectThread.cancel(); connectThread = null;}
@@ -214,8 +197,14 @@ public class Rfcomm implements IRfcomm {
             acceptThread.cancel();
             acceptThread = null;
         }
-
-        ctx.unregisterReceiver(mReceiver);
+	}
+	
+	@Override
+	public void unregisterReceiver() {
+	     if (receiverRegistered) {
+	    	 ctx.unregisterReceiver(mReceiver);
+		     receiverRegistered = false;
+	     }
 	}
 	
 	public void discovering(){
@@ -239,12 +228,11 @@ public class Rfcomm implements IRfcomm {
 			if (BluetoothDevice.ACTION_FOUND.equals(action)) {
 				// Get the BluetoothDevice object from the Intent
 				BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+				// Only get not bounded devices
 				if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
+					devices.add(device);
 					fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.NEW_DEVICE_FOUND), device);
-				} else {
-					fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.PAIRED_DEVICE), device);
-				}
-				devices.add(device);
+				}				
 				
 				// When discovery is finished, change the Activity title
 			} else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
@@ -267,7 +255,7 @@ public class Rfcomm implements IRfcomm {
 	}
 	
 	@Override
-	public BluetoothDevice getDevices(String address) {
+	public BluetoothDevice getDevice(String address) {
 		for (BluetoothDevice d : devices) {
 			if (d.getAddress().equals(address)) return d;
 		}
@@ -311,7 +299,7 @@ public class Rfcomm implements IRfcomm {
     
     private void connectionFailed() {
         // Start the service over to restart listening mode
-        Rfcomm.this.start();
+        Rfcomm.this.startServerSocket();
     }
 	
 	private class AcceptThread extends Thread {
@@ -481,12 +469,13 @@ public class Rfcomm implements IRfcomm {
 					int bytesRead = 0;
 					byte[] inBuffer = null;
 					try {
-						if (0 < mmInStream.available()) {
+						if (mmInStream.available() > 0) {
 							inBuffer = new byte[1024];
 							bytesRead = mmInStream.read(inBuffer);
 						}
 					} catch (IOException e) {
     						Log.e(TAG, "Read failed", e);
+    						break;
 					}
 
 					if (bytesRead > 0) {
@@ -503,8 +492,8 @@ public class Rfcomm implements IRfcomm {
 							try {
 								fifo_data_read.add(inBuffer);
 							} catch (InterruptedException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
+								Log.e(TAG, "Failure in adding buffer to ByteFIFO", e);
+								break;
 							}
 						}
 						fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.INCOMMING_DATA));
