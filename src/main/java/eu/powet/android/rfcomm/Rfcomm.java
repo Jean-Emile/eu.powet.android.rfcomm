@@ -45,6 +45,7 @@ public class Rfcomm implements IRfcomm {
 	private AcceptThread acceptThread;
 	private ConnectedThread connectedThread;
 	private boolean receiverRegistered = false;
+    private boolean connected = false;
 
 
 	public Rfcomm(Context _ctx) 
@@ -111,6 +112,7 @@ public class Rfcomm implements IRfcomm {
 						break;
 						
 					case DISCONNECTED:
+                        connected = false;
 						((BluetoothEventListener) listeners[i + 1]).disconnected();
 						break;
 						
@@ -123,6 +125,7 @@ public class Rfcomm implements IRfcomm {
 						break;
 	
 					case CONNECTED:
+                        connected = true;
 						((BluetoothEventListener) listeners[i + 1]).connected(device);
 						break;
 				}
@@ -157,7 +160,7 @@ public class Rfcomm implements IRfcomm {
 	}
 
 	public boolean isConnected() {
-		return ((inStream != null) && (outStream != null));
+		return connected;
 	}
 	
 	@Override
