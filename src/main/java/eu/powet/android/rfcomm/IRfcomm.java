@@ -13,11 +13,11 @@ public interface IRfcomm {
 
 	public void write(byte[] data);
 
-	public void close();
+	public void stop();
 
 	public boolean isConnected();
 	
-	public void connect(BluetoothDevice device);
+	public void connect(BluetoothDevice device, boolean secure);
 
 	public Set<BluetoothDevice> getDevices();
 
@@ -33,11 +33,13 @@ public interface IRfcomm {
 
 	public BluetoothDevice getDevice(String address);
 	
-	public void startServerSocket();
+	public void start();
 	
 	public void setName(String name);
 	
 	public void unregisterReceiver();
 	
 	public BluetoothDevice getDeviceByName(String name);
+	
+	public String getMyAddress();
 }
