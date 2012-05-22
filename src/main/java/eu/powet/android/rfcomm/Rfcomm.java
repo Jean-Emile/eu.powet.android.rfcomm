@@ -159,6 +159,11 @@ public class Rfcomm implements IRfcomm {
 	public boolean isConnected() {
 		return ((inStream != null) && (outStream != null));
 	}
+	
+	@Override
+	public void setName(String name) {
+		localAdapter.setName(name);
+	}
 
 	public byte[] read() {
 		return fifo_data_read.removeAll();
@@ -258,6 +263,14 @@ public class Rfcomm implements IRfcomm {
 	public BluetoothDevice getDevice(String address) {
 		for (BluetoothDevice d : devices) {
 			if (d.getAddress().equals(address)) return d;
+		}
+		return null;
+	}
+	
+	@Override
+	public BluetoothDevice getDeviceByName(String name) {
+		for (BluetoothDevice d : devices) {
+			if (d.getName().equals(name)) return d;
 		}
 		return null;
 	}

@@ -35,5 +35,9 @@ public interface IRfcomm {
 	
 	public void startServerSocket();
 	
+	public void setName(String name);
+	
 	public void unregisterReceiver();
+	
+	public BluetoothDevice getDeviceByName(String name);
 }
