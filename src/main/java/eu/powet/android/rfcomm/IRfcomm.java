@@ -9,9 +9,32 @@ import android.bluetooth.BluetoothDevice;
  */
 public interface IRfcomm {
 
-	public byte[] read();
+	/**
+	 * Broadcast data to every connected devices
+	 * @param data
+	 */
+	public void broadcast(byte[] data);
+	
+	/**
+	 * Write the data for the specified device given in parameter
+	 * @param device
+	 * @param data
+	 */
+	public void write(BluetoothDevice device, byte[] data);
 
-	public void write(byte[] data);
+	/**
+	 * Write the data for the specified device name given in parameter
+	 * @param deviceName
+	 * @param data
+	 */
+	public void writeFromName(String deviceName, byte[] data);
+	
+	/**
+	 * Write the data for the specified device address given in parameter
+	 * @param deviceAddress
+	 * @param data
+	 */
+	public void writeFromAddress(String deviceAddress, byte[] data);
 
 	public void stop();
 

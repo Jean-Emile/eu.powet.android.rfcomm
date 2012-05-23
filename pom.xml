@@ -6,7 +6,7 @@
     <groupId>eu.powet</groupId>
     <artifactId>eu.powet.android.rfcomm</artifactId>
     <name>Eu :: Powet :: Android :: RFCOMM</name>
-    <version>1.1</version>
+    <version>1.2</version>
     <packaging>jar</packaging>
     
     <properties>
@@ -18,7 +18,7 @@
         <dependency>
             <groupId>com.google.android</groupId>
             <artifactId>android</artifactId>
-            <version>2.2.1</version>
+            <version>2.3.3</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
