@@ -12,7 +12,7 @@ public interface ConnectedThreadListener {
 	void connectionLost(BluetoothDevice device);
 	
 	/**
-	 * Called when the association ConnectedThread reads data
+	 * Called when the ConnectedThread reads data
 	 * from the remote device
 	 * @param device the remote device who sent the data
 	 * @param bytes data length in the buffer
