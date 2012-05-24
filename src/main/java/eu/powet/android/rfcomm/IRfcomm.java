@@ -39,6 +39,10 @@ public interface IRfcomm {
 	public void stop();
 
 	public boolean isConnected();
+
+    public boolean isDeviceConnected(BluetoothDevice device);
+
+    public boolean isDeviceConnected(String deviceName);
 	
 	public void connect(BluetoothDevice device, boolean secure);
 
@@ -65,4 +69,10 @@ public interface IRfcomm {
 	public BluetoothDevice getDeviceByName(String name);
 	
 	public String getMyAddress();
+
+    public void disconnect(BluetoothDevice device);
+
+    public void disconnectFromName(String deviceName);
+
+    public void disconnectFromAddress(String deviceAddress);
 }

@@ -22,7 +22,7 @@ import android.util.Log;
  * Date: 22/05/2012
  * Time: 15:28
  */
-public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThreadListener, ConnectThreadListener {       
+public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThreadListener, ConnectThreadListener {
 
     // Debugging
     private static final boolean D = true;
@@ -31,24 +31,24 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     // Name for the SDP record when creating server socket
     private static final String NAME_SECURE = "RfcommSecure";
     private static final String NAME_INSECURE = "RfcommInsecure";
-    
+
     // Messages sent by Rfcomm
     public static final int MESSAGE_STATE_CHANGE = 1;
     public static final int MESSAGE_READ = 2;
     public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
-    
+
     // Key names received by the Handler
     public static final String DEVICE_NAME = "device_name";
     public static final String TOAST = "toast";
 
     // Unique UUID for this application
     public static final UUID MY_UUID_SECURE =
-        UUID.fromString("eae75780-a40f-11e1-b3dd-0800200c9a66");
+            UUID.fromString("eae75780-a40f-11e1-b3dd-0800200c9a66");
     public static final UUID MY_UUID_INSECURE =
-        UUID.fromString("8a4bc930-9f53-11e1-a8b0-0800200c9a66");
-    
+            UUID.fromString("8a4bc930-9f53-11e1-a8b0-0800200c9a66");
+
     // Member fields
     private final BluetoothAdapter mAdapter;
     private final Handler mHandler;
@@ -57,10 +57,10 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     private Map<BluetoothDevice, ConnectThread> connectionAttempts;
     private Map<BluetoothDevice, ConnectedThread> remoteConnections;
     private int mState;
-	private Set<BluetoothDevice> devices;
-	private EventListenerList listenerList;
-	private Context ctx;
-	private boolean receiverRegistered = false;
+    private Set<BluetoothDevice> devices;
+    private EventListenerList listenerList;
+    private Context ctx;
+    private boolean receiverRegistered = false;
 
     // Constants that indicate the current connection state
     public static final int STATE_NONE = 0;			// we're doing nothing
@@ -68,177 +68,183 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     public static final int STATE_CONNECTING = 2;	// now initiating an outgoing connection
     public static final int STATE_CONNECTED = 3;	// now connected to a remote device
 
-	public Rfcomm(Context _ctx, Handler handler) {
+    public Rfcomm(Context _ctx, Handler handler) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
         this.ctx = _ctx;
         mHandler = handler;
-		
-		if ((mAdapter != null) && mAdapter.isEnabled()) {
-			Log.i(TAG, "Bluetooth adapter found and enabled on device. ");
-		} else {
-			Log.e(TAG, "Bluetooth adapter NOT FOUND or NOT ENABLED!");
-			return;
-		}
 
-		listenerList = new EventListenerList();
-		devices = new HashSet<BluetoothDevice>();
-		connectionAttempts = new Hashtable<BluetoothDevice, ConnectThread>();
-		remoteConnections = new Hashtable<BluetoothDevice, ConnectedThread>();
-		
-		// Register for broadcasts when a device is discovered
-		IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-		ctx.registerReceiver(mReceiver, filter);
+        if ((mAdapter != null) && mAdapter.isEnabled()) {
+            Log.i(TAG, "Bluetooth adapter found and enabled on device. ");
+        } else {
+            Log.e(TAG, "Bluetooth adapter NOT FOUND or NOT ENABLED!");
+            return;
+        }
 
-		filter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-		ctx.registerReceiver(mReceiver, filter);
+        listenerList = new EventListenerList();
+        devices = new HashSet<BluetoothDevice>();
+        connectionAttempts = new Hashtable<BluetoothDevice, ConnectThread>();
+        remoteConnections = new Hashtable<BluetoothDevice, ConnectedThread>();
 
-		// Register for broadcasts when discovery has finished
-		filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-		ctx.registerReceiver(mReceiver, filter);
-		receiverRegistered = true;
+        // Register for broadcasts when a device is discovered
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        ctx.registerReceiver(mReceiver, filter);
 
-		// Get a set of currently paired devices
-		Set<BluetoothDevice> pairedDevices = mAdapter.getBondedDevices();
+        filter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        ctx.registerReceiver(mReceiver, filter);
 
-		// If there are paired devices, add each one to the ArrayAdapter
-		if (pairedDevices.size() > 0) {
-			for (BluetoothDevice device : pairedDevices) {
-				devices.add(device);
-			}
-		}
-	}
+        // Register for broadcasts when discovery has finished
+        filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        ctx.registerReceiver(mReceiver, filter);
+        receiverRegistered = true;
 
-	public void addEventListener (BluetoothEventListener listener) {
-		listenerList.add(BluetoothEventListener.class, listener);
-	}
+        // Get a set of currently paired devices
+        Set<BluetoothDevice> pairedDevices = mAdapter.getBondedDevices();
 
-	public void removeEventListener (BluetoothEventListener listener) {
-		listenerList.remove(BluetoothEventListener.class, listener);
-	}
+        // If there are paired devices, add each one to the ArrayAdapter
+        if (pairedDevices.size() > 0) {
+            for (BluetoothDevice device : pairedDevices) {
+                devices.add(device);
+            }
+        }
+    }
 
-	void fireSerialAndroidEvent(BluetoothEvent evt, BluetoothDevice device) {
-		Object[] listeners = listenerList.getListenerList();
-		for (int i = 0; i < listeners.length; i += 2)
-		{
+    public void addEventListener (BluetoothEventListener listener) {
+        listenerList.add(BluetoothEventListener.class, listener);
+    }
 
-			if (listeners[i] == BluetoothEventListener.class)
-			{
-				switch (evt.getTypeEvent()) {
-					case ACTION_DISCOVERY_FINISHED:
-						((BluetoothEventListener) listeners[i + 1]).discoveryFinished(evt);
-						break;
-						
-					case DISCONNECTED:
-						((BluetoothEventListener) listeners[i + 1]).disconnected(device);
-						break;
-						
-					case NEW_DEVICE_FOUND:
-						((BluetoothEventListener) listeners[i + 1]).newDeviceFound(device);
-						break;
-						
-					case DISCOVERABLE:
-						((BluetoothEventListener) listeners[i + 1]).discoverable();
-						break;
-	
-					case CONNECTED:
-						((BluetoothEventListener) listeners[i + 1]).connected(device);
-						break;
-				}
+    public void removeEventListener (BluetoothEventListener listener) {
+        listenerList.remove(BluetoothEventListener.class, listener);
+    }
 
-			}
-		}
-	}
-	
-	void fireSerialAndroidEvent(BluetoothEvent evt) {
-		fireSerialAndroidEvent(evt, null);
-	}
-	
-	@Override
-	public void setDiscoverable(int duration) {
+    void fireSerialAndroidEvent(BluetoothEvent evt, BluetoothDevice device) {
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = 0; i < listeners.length; i += 2)
+        {
+
+            if (listeners[i] == BluetoothEventListener.class)
+            {
+                switch (evt.getTypeEvent()) {
+                    case ACTION_DISCOVERY_FINISHED:
+                        ((BluetoothEventListener) listeners[i + 1]).discoveryFinished(evt);
+                        break;
+
+                    case DISCONNECTED:
+                        ((BluetoothEventListener) listeners[i + 1]).disconnected(device);
+                        break;
+
+                    case NEW_DEVICE_FOUND:
+                        ((BluetoothEventListener) listeners[i + 1]).newDeviceFound(device);
+                        break;
+
+                    case DISCOVERABLE:
+                        ((BluetoothEventListener) listeners[i + 1]).discoverable();
+                        break;
+
+                    case CONNECTED:
+                        ((BluetoothEventListener) listeners[i + 1]).connected(device);
+                        break;
+                }
+
+            }
+        }
+    }
+
+    void fireSerialAndroidEvent(BluetoothEvent evt) {
+        fireSerialAndroidEvent(evt, null);
+    }
+
+    @Override
+    public void setDiscoverable(int duration) {
         if (mAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
             Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
             discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration);
             ctx.startActivity(discoverableIntent);
         }
     }
-	
-	@Override
-	public void setName(String name) {
-		mAdapter.setName(name);
-	}
-	
-	@Override
-	public void unregisterReceiver() {
-	     if (receiverRegistered) {
-	    	 ctx.unregisterReceiver(mReceiver);
-		     receiverRegistered = false;
-	     }
-	}
-	
-	public void discovering(){
 
-		if (mAdapter.isDiscovering()) {
-			mAdapter.cancelDiscovery();
-		}
-		// Request discover from BluetoothAdapter
-		mAdapter.startDiscovery();
-	}
+    @Override
+    public void setName(String name) {
+        mAdapter.setName(name);
+    }
 
-	public void cancelDiscovery() {
-		if (mAdapter.isDiscovering()) mAdapter.cancelDiscovery();
-	}
+    @Override
+    public void unregisterReceiver() {
+        if (receiverRegistered) {
+            ctx.unregisterReceiver(mReceiver);
+            receiverRegistered = false;
+        }
+    }
 
-	private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
-		@Override
-		public void onReceive(Context context, Intent intent) {
-			String action = intent.getAction();
-			// When discovery finds a device
-			if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-				// Get the BluetoothDevice object from the Intent
-				BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-				// Only get not bounded devices
-				if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
-					devices.add(device);
-					fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.NEW_DEVICE_FOUND), device);
-				}				
-				
-				// When discovery is finished, change the Activity title
-			} else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
-				fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.ACTION_DISCOVERY_FINISHED));
-			}
+    public void discovering(){
 
-			if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-				fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.DISCONNECTED));
-			}
-			
-			if (BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE.equals(action)) {
-				fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.DISCOVERABLE));
-			}
-		}
-	};
+        if (mAdapter.isDiscovering()) {
+            mAdapter.cancelDiscovery();
+        }
+        // Request discover from BluetoothAdapter
+        mAdapter.startDiscovery();
+    }
 
-	@Override
-	public Set<BluetoothDevice> getDevices() {
-		return devices;
-	}
-	
-	@Override
-	public BluetoothDevice getDevice(String address) {
-		for (BluetoothDevice d : devices) {
-			if (d.getAddress().equals(address)) return d;
-		}
-		return null;
-	}
-	
-	@Override
-	public BluetoothDevice getDeviceByName(String name) {
-		for (BluetoothDevice d : devices) {
-			if (d.getName().equals(name)) return d;
-		}
-		return null;
-	}
-	
+    public void cancelDiscovery() {
+        if (mAdapter.isDiscovering()) mAdapter.cancelDiscovery();
+    }
+
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            // When discovery finds a device
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                // Get the BluetoothDevice object from the Intent
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                // Only get not bounded devices
+                if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
+                    devices.add(device);
+                    fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.NEW_DEVICE_FOUND), device);
+                }
+
+                // When discovery is finished, change the Activity title
+            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.ACTION_DISCOVERY_FINISHED));
+            }
+
+            if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                // Get the BluetoothDevice object from the Intent
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if (remoteConnections.containsKey(device)) {
+                    remoteConnections.get(device).cancel();
+                    remoteConnections.remove(device);
+                }
+                fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.DISCONNECTED), device);
+            }
+
+            if (BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE.equals(action)) {
+                fireSerialAndroidEvent(new BluetoothEvent(ctx, TypeEvent.DISCOVERABLE));
+            }
+        }
+    };
+
+    @Override
+    public Set<BluetoothDevice> getDevices() {
+        return devices;
+    }
+
+    @Override
+    public BluetoothDevice getDevice(String address) {
+        for (BluetoothDevice d : devices) {
+            if (d.getAddress().equals(address)) return d;
+        }
+        return null;
+    }
+
+    @Override
+    public BluetoothDevice getDeviceByName(String name) {
+        for (BluetoothDevice d : devices) {
+            if (d.getName().equals(name)) return d;
+        }
+        return null;
+    }
+
     /**
      * Set the current state of the connection
      * @param state  An integer defining the current connection state
@@ -263,14 +269,17 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
      * Calling start() when the service is already started will
      * cancel every active connections
      */
+    @Override
     public synchronized void start() {
         if (D) Log.d(TAG, "start");
 
         // Cancel any thread attempting to make a connection
         for (ConnectThread ct : connectionAttempts.values()) ct.cancel();
+        connectionAttempts.clear();
 
         // Cancel any thread currently running a connection
         for (ConnectedThread ct : remoteConnections.values()) ct.cancel();
+        remoteConnections.clear();
 
         setState(STATE_LISTEN);
 
@@ -280,7 +289,7 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
             mSecureBluetoothServer.addListener(this);
             mSecureBluetoothServer.start();
         }
-        
+
         if (mInsecureBluetoothServer == null) {
             mInsecureBluetoothServer = new BluetoothServer(Rfcomm.this, false);
             mSecureBluetoothServer.addListener(this);
@@ -293,23 +302,24 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
      * @param device  The BluetoothDevice to connect
      * @param secure Socket Security type - Secure (true) , Insecure (false)
      */
+    @Override
     public synchronized void connect(BluetoothDevice device, boolean secure) {
         if (D) Log.d(TAG, "connect to: " + device);
-        
+
         // no connection attempt already made
         if (!connectionAttempts.containsKey(device)) {
-        	// no active connection already set up
-        	if (!remoteConnections.containsKey(device)) {
-        		// then we create a new connection
-        		ConnectThread ct = new ConnectThread(this, device, secure);
-        		ct.addListener(this);
-        		ct.start();
-        		connectionAttempts.put(device, ct);
-        	} else {
-        		if (D) Log.d(TAG, "Connection already made with "+device+", abort double connection");	
-        	}
+            // no active connection already set up
+            if (!remoteConnections.containsKey(device)) {
+                // then we create a new connection
+                ConnectThread ct = new ConnectThread(this, device, secure);
+                ct.addListener(this);
+                ct.start();
+                connectionAttempts.put(device, ct);
+            } else {
+                if (D) Log.d(TAG, "Connection already made with "+device+", abort double connection");
+            }
         } else {
-        	if (D) Log.d(TAG, "Connection attempt to "+device+" already initiated, abort double connection");
+            if (D) Log.d(TAG, "Connection attempt to "+device+" already initiated, abort double connection");
         }
         // TODO change the state implementation
         // setState(STATE_CONNECTING);
@@ -318,17 +328,14 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     /**
      * Stop all threads
      */
+    @Override
     public synchronized void stop() {
         if (D) Log.d(TAG, "stop");
 
-        for (ConnectThread ct : connectionAttempts.values()) {
-            ct.cancel();
-        }
+        for (ConnectThread ct : connectionAttempts.values()) ct.cancel();
         connectionAttempts.clear();
 
-        for (ConnectedThread ct : remoteConnections.values()) {
-            ct.cancel();
-        }
+        for (ConnectedThread ct : remoteConnections.values()) ct.cancel();
         remoteConnections.clear();
 
         if (mSecureBluetoothServer != null) {
@@ -342,14 +349,16 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
         }
         setState(STATE_NONE);
     }
-    
-	@Override
-	public void newDeviceConnected(ConnectedThread connThread) {
-		// add the connected device and thread to the map
-		remoteConnections.put(connThread.getDevice(), connThread);
-		
-		// call the listener method to notify
-		
+
+    @Override
+    public void newDeviceConnected(ConnectedThread connThread) {
+        // add the connected device and thread to the map
+        remoteConnections.put(connThread.getDevice(), connThread);
+
+        BluetoothDevice device = connThread.getDevice();
+        // call the listener method to notify
+        fireSerialAndroidEvent(new BluetoothEvent(device, TypeEvent.CONNECTED), device);
+
         // Send the name of the connected device back to the UI Activity
         Message msg = mHandler.obtainMessage(MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
@@ -358,87 +367,122 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
         mHandler.sendMessage(msg);
 
         setState(STATE_CONNECTED);
-	}
+    }
 
-	@Override
+    @Override
     public void broadcast(byte[] out) {
         if (mState != STATE_CONNECTED) return;
         for (ConnectedThread ct : remoteConnections.values()) ct.write(out);
         mHandler.obtainMessage(MESSAGE_WRITE, -1, -1, out).sendToTarget();
     }
-    
-	@Override
+
+    @Override
     public void write(BluetoothDevice device, byte[] out) {
-		if (mState != STATE_CONNECTED || !remoteConnections.containsKey(device)) return;
-		remoteConnections.get(device).write(out);
-		mHandler.obtainMessage(MESSAGE_WRITE, -1, -1, out).sendToTarget();
+        if (mState != STATE_CONNECTED || !remoteConnections.containsKey(device)) return;
+        remoteConnections.get(device).write(out);
+        mHandler.obtainMessage(MESSAGE_WRITE, -1, -1, out).sendToTarget();
     }
-    
-	@Override
+
+    @Override
     public void writeFromName(String deviceName, byte[] out) {
-    	write(getDeviceByName(deviceName), out);
+        write(getDeviceByName(deviceName), out);
     }
-    
-	@Override
+
+    @Override
     public void writeFromAddress(String deviceAddress, byte[] out) {
-    	write(getDevice(deviceAddress), out);
+        write(getDevice(deviceAddress), out);
     }
 
-	@Override
-	public boolean isConnected() {
-		switch (mState) {
-		case STATE_CONNECTED:
-			return true;
-		default:
-			return false;
-		}
-	}
+    @Override
+    public boolean isConnected() {
+        switch (mState) {
+            case STATE_CONNECTED:
+                return true;
+            default:
+                return false;
+        }
+    }
 
-	@Override
-	public String getMyAddress() {
-		return mAdapter.getAddress();
-	}
+    @Override
+    public String getMyAddress() {
+        return mAdapter.getAddress();
+    }
 
-	@Override
-	public void connectionFailed(BluetoothDevice device) {
-		// remove the device from the connectionAttempts
-		connectionAttempts.remove(device);
-		
+    @Override
+    public void connectionFailed(BluetoothDevice device) {
+        // remove the device from the connectionAttempts
+        connectionAttempts.remove(device);
+
         // Send a failure message back to the Activity
         Message msg = mHandler.obtainMessage(MESSAGE_TOAST);
         Bundle bundle = new Bundle();
         bundle.putString(TOAST, "Unable to connect device ("+device.getAddress()+")");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
-	}
+    }
 
-	@Override
-	public void connectionLost(BluetoothDevice device) {
-		// remove the device from the remoteConnections
-		remoteConnections.remove(device);
-		
+    @Override
+    public void connectionLost(BluetoothDevice device) {
+        // remove the device from the remoteConnections
+        remoteConnections.remove(device);
+
         // Send a failure message back to the Activity
         Message msg = mHandler.obtainMessage(MESSAGE_TOAST);
         Bundle bundle = new Bundle();
         bundle.putString(TOAST, "Device connection was lost ("+device.getAddress()+")");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
-	}
+    }
 
-	@Override
-	public void incomingData(BluetoothDevice device, int bytes, byte[] buffer) {
-		// Send the obtained bytes to the UI Activity
+    @Override
+    public void incomingData(BluetoothDevice device, int bytes, byte[] buffer) {
+        // Send the obtained bytes to the UI Activity
         mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer).sendToTarget();
-	}
+    }
 
-	@Override
-	public void sentData(BluetoothDevice device, byte[] buffer) {
+    @Override
+    public void sentData(BluetoothDevice device, byte[] buffer) {
         // Share the sent message back to the UI Activity
 //        mHandler.obtainMessage(MESSAGE_WRITE, -1, -1, buffer).sendToTarget();
-	}
+    }
 
-	@Override
-	public void closed() {
-		setState(STATE_NONE);
-	}
+    @Override
+    public void closed() {
+        setState(STATE_NONE);
+    }
+
+    @Override
+    public boolean isDeviceConnected(BluetoothDevice device) {
+        return remoteConnections.containsKey(device);
+    }
+
+    @Override
+    public boolean isDeviceConnected(String deviceName) {
+        return isDeviceConnected(getDeviceByName(deviceName));
+    }
+
+    @Override
+    public void disconnect(BluetoothDevice device) {
+        if (connectionAttempts.containsKey(device)) {
+            connectionAttempts.get(device).cancel();
+            connectionAttempts.remove(device);
+        }
+
+        if (remoteConnections.containsKey(device)) {
+            remoteConnections.get(device).cancel();
+            remoteConnections.remove(device);
+        }
+
+        fireSerialAndroidEvent(new BluetoothEvent(device, TypeEvent.DISCONNECTED), device);
+    }
+
+    @Override
+    public void disconnectFromName(String deviceName) {
+        disconnect(getDeviceByName(deviceName));
+    }
+
+    @Override
+    public void disconnectFromAddress(String deviceAddress) {
+        disconnect(getDevice(deviceAddress));
+    }
 }
