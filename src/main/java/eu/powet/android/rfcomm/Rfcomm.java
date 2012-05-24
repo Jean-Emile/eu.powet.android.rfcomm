@@ -43,17 +43,11 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     public static final String DEVICE_NAME = "device_name";
     public static final String TOAST = "toast";
 
-    // Unique UUID for this application
-    public static final UUID MY_UUID_SECURE =
-            UUID.fromString("eae75780-a40f-11e1-b3dd-0800200c9a66");
-    public static final UUID MY_UUID_INSECURE =
-            UUID.fromString("8a4bc930-9f53-11e1-a8b0-0800200c9a66");
-
     // Member fields
     private final BluetoothAdapter mAdapter;
     private final Handler mHandler;
-    private BluetoothServer mSecureBluetoothServer;
-    private BluetoothServer mInsecureBluetoothServer;
+    private UUID secureUUID, unsecureUUID;
+    private BluetoothServer mSecureBluetoothServer, mInsecureBluetoothServer;
     private Map<BluetoothDevice, ConnectThread> connectionAttempts;
     private Map<BluetoothDevice, ConnectedThread> remoteConnections;
     private int mState;
@@ -68,10 +62,12 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     public static final int STATE_CONNECTING = 2;	// now initiating an outgoing connection
     public static final int STATE_CONNECTED = 3;	// now connected to a remote device
 
-    public Rfcomm(Context _ctx, Handler handler) {
+    public Rfcomm(Context _ctx, UUID secureUUID, UUID unsecureUUID, Handler handler) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
         this.ctx = _ctx;
+        this.secureUUID = secureUUID;
+        this.unsecureUUID = unsecureUUID;
         mHandler = handler;
 
         if ((mAdapter != null) && mAdapter.isEnabled()) {
@@ -484,5 +480,13 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     @Override
     public void disconnectFromAddress(String deviceAddress) {
         disconnect(getDevice(deviceAddress));
+    }
+    
+    public UUID getSecureUUID() {
+    	return secureUUID;
+    }
+    
+    public UUID getUnsecureUUID() {
+    	return unsecureUUID;
     }
 }

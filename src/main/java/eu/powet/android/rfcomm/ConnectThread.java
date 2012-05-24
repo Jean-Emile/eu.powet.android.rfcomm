@@ -39,10 +39,10 @@ public class ConnectThread extends Thread {
         try {
             if (secure) {
                 tmp = device.createRfcommSocketToServiceRecord(
-                        Rfcomm.MY_UUID_SECURE);
+                        rfcomm.getSecureUUID());
             } else {
                 tmp = device.createInsecureRfcommSocketToServiceRecord(
-                        Rfcomm.MY_UUID_INSECURE);
+                        rfcomm.getUnsecureUUID());
             }
         } catch (IOException e) {
             Log.e(TAG, "Socket Type: " + mSocketType + "create() failed", e);

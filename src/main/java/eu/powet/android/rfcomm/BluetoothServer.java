@@ -40,10 +40,10 @@ public class BluetoothServer extends Thread {
         try {
             if (secure) {
                 tmp = mAdapter.listenUsingRfcommWithServiceRecord(NAME_SECURE,
-                    Rfcomm.MY_UUID_SECURE);
+                    rfcomm.getSecureUUID());
             } else {
                 tmp = mAdapter.listenUsingInsecureRfcommWithServiceRecord(
-                        NAME_INSECURE, Rfcomm.MY_UUID_INSECURE);
+                        NAME_INSECURE, rfcomm.getUnsecureUUID());
             }
         } catch (IOException e) {
             Log.e(TAG, "Socket Type: " + mSocketType + "listen() failed", e);
