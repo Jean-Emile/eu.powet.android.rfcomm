@@ -1,8 +1,11 @@
-package eu.powet.android.rfcomm;
+package eu.powet.android.rfcomm.thread;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import eu.powet.android.rfcomm.listener.ConnectedThreadListener;
+import eu.powet.android.rfcomm.listener.TimeoutThreadListener;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -13,7 +16,7 @@ import android.util.Log;
  * It handles all incoming and outgoing transmissions.
  * @author max
  */
-public class ConnectedThread extends Thread {
+public class ConnectedThread extends Thread implements TimeoutThreadListener {
 	
 	// Debugging
 	private static final String TAG = "ConnectedThread";
@@ -24,9 +27,10 @@ public class ConnectedThread extends Thread {
     private final OutputStream mOutStream;
     private final BluetoothDevice mDevice;
     
+    private TimeoutThread mTimeoutThread;
     private ConnectedThreadListener listener;
 
-    public ConnectedThread(BluetoothSocket socket, String socketType) {
+    public ConnectedThread(BluetoothSocket socket, String socketType, long timeout) {
         Log.d(TAG, "create ConnectedThread: " + socketType);
         mSocket = socket;
         mDevice = mSocket.getRemoteDevice();
@@ -43,10 +47,16 @@ public class ConnectedThread extends Thread {
 
         mInStream = tmpIn;
         mOutStream = tmpOut;
+        mTimeoutThread = new TimeoutThread(timeout);
+        mTimeoutThread.addListener(this);
     }
 
     public void run() {
         Log.i(TAG, "BEGIN mConnectedThread");
+        
+        if (D) Log.i(TAG, "Starting the TimeoutThread for "+mTimeoutThread.getTime()+" milliseconds");
+        mTimeoutThread.start();
+        
         byte[] buffer = new byte[1024];
         int bytes;
 
@@ -55,6 +65,8 @@ public class ConnectedThread extends Thread {
             try {
                 // Read from the InputStream
                 bytes = mInStream.read(buffer);
+                
+                resetTimeout();
 
 				if (bytes > 0) {
                     // Send the obtained bytes by the listener
@@ -62,7 +74,7 @@ public class ConnectedThread extends Thread {
 				}
                 
             } catch (IOException e) {
-                Log.e(TAG, "disconnected", e);
+                Log.e(TAG, "disconnected "+mDevice, e);
                 if (listener != null) listener.connectionLost(mDevice);
                 break;
             }
@@ -76,6 +88,8 @@ public class ConnectedThread extends Thread {
     public void write(byte[] buffer) {
         try {
             mOutStream.write(buffer);
+            
+            resetTimeout();
 
             // Share the sent message back by the listener
             if (listener != null) listener.sentData(mDevice, buffer);
@@ -104,4 +118,18 @@ public class ConnectedThread extends Thread {
     public BluetoothDevice getDevice() {
     	return mDevice;
     }
+    
+    /**
+     * Asks the timeout thread to reset to its initial value
+     */
+    private void resetTimeout() {
+    	// reset the timeout because we received data
+        mTimeoutThread.reset();
+    }
+
+	@Override
+	public void onTimeExpired() {
+		if (D) Log.i(TAG, "Timeout: Connection expired with "+mDevice+ ", closing socket...");
+		cancel();
+	}
 }

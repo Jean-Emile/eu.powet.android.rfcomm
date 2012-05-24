@@ -1,6 +1,9 @@
-package eu.powet.android.rfcomm;
+package eu.powet.android.rfcomm.thread;
 
 import java.io.IOException;
+
+import eu.powet.android.rfcomm.Rfcomm;
+import eu.powet.android.rfcomm.listener.BluetoothServerListener;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
@@ -29,12 +32,14 @@ public class BluetoothServer extends Thread {
     private BluetoothAdapter mAdapter;
     private Rfcomm rfcomm;
     private BluetoothServerListener listener;
+    private long timeout;
 
-    public BluetoothServer(Rfcomm rfcomm, boolean secure) {
+    public BluetoothServer(Rfcomm rfcomm, boolean secure, long timeout) {
     	this.rfcomm = rfcomm;
         BluetoothServerSocket tmp = null;
         mSocketType = secure ? "Secure":"Insecure";
         mAdapter = BluetoothAdapter.getDefaultAdapter();
+        this.timeout = timeout;
 
         // Create a new listening server socket
         try {
@@ -73,7 +78,7 @@ public class BluetoothServer extends Thread {
             // If a connection was accepted
             if (socket != null) {
                 // handle the new remote device in a ConnectedThread
-            	ConnectedThread ct = new ConnectedThread(socket, mSocketType);
+            	ConnectedThread ct = new ConnectedThread(socket, mSocketType, timeout);
             	ct.addListener(rfcomm);
             	ct.start();
             	if (listener != null) listener.newDeviceConnected(ct);

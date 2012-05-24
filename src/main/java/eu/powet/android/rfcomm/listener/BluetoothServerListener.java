@@ -1,4 +1,6 @@
-package eu.powet.android.rfcomm;
+package eu.powet.android.rfcomm.listener;
+
+import eu.powet.android.rfcomm.thread.ConnectedThread;
 
 
 public interface BluetoothServerListener {

@@ -1,4 +1,4 @@
-package eu.powet.android.rfcomm;
+package eu.powet.android.rfcomm.listener;
 
 public enum TypeEvent {
 	ACTION_DISCOVERY_FINISHED,

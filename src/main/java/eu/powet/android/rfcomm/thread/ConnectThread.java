@@ -1,4 +1,4 @@
-package eu.powet.android.rfcomm;
+package eu.powet.android.rfcomm.thread;
 
 import java.io.IOException;
 
@@ -6,6 +6,8 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
+import eu.powet.android.rfcomm.Rfcomm;
+import eu.powet.android.rfcomm.listener.ConnectThreadListener;
 
 /**
  * This thread runs while attempting to make an outgoing connection
@@ -26,13 +28,15 @@ public class ConnectThread extends Thread {
     private BluetoothAdapter mAdapter;
     private ConnectThreadListener listener;
     private Rfcomm rfcomm;
+    private long timeout;
 
-    public ConnectThread(Rfcomm rfcomm, BluetoothDevice device, boolean secure) {
+    public ConnectThread(Rfcomm rfcomm, BluetoothDevice device, boolean secure, long timeout) {
     	this.rfcomm = rfcomm;
         mAdapter = BluetoothAdapter.getDefaultAdapter();
     	mDevice = device;
         BluetoothSocket tmp = null;
         mSocketType = secure ? "Secure" : "Insecure";
+        this.timeout = timeout;
 
         // Get a BluetoothSocket for a connection with the
         // given BluetoothDevice
@@ -66,6 +70,7 @@ public class ConnectThread extends Thread {
             // Close the socket
             try {
                 mSocket.close();
+                
             } catch (IOException e2) {
                 Log.e(TAG, "unable to close() " + mSocketType +
                         " socket during connection failure", e2);
@@ -75,7 +80,7 @@ public class ConnectThread extends Thread {
         }
 
         // handle the new remote device in a ConnectedThread
-    	ConnectedThread ct = new ConnectedThread(mSocket, mSocketType);
+    	ConnectedThread ct = new ConnectedThread(mSocket, mSocketType, timeout);
     	ct.addListener(rfcomm);
     	ct.start();
     	if (listener != null) listener.newDeviceConnected(ct);

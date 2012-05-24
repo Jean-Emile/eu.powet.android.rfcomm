@@ -1,4 +1,4 @@
-package eu.powet.android.rfcomm;
+package eu.powet.android.rfcomm.listener;
 
 import android.bluetooth.BluetoothDevice;
 

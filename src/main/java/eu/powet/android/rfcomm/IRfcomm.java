@@ -2,6 +2,8 @@ package eu.powet.android.rfcomm;
 
 import java.util.Set;
 
+import eu.powet.android.rfcomm.listener.BluetoothEventListener;
+
 import android.bluetooth.BluetoothDevice;
 
 /**
@@ -44,7 +46,13 @@ public interface IRfcomm {
 
     public boolean isDeviceConnected(String deviceName);
 	
-	public void connect(BluetoothDevice device, boolean secure);
+    /**
+     * Start a ConnectThread to initiate a connection to a remote device.
+     * @param device  The BluetoothDevice to connect
+     * @param secure Socket Security type - Secure (true) , Insecure (false)
+     * @param timeout Time in millisecond for which the connection remains active without read/write
+     */
+	public void connect(BluetoothDevice device, boolean secure, long timeout);
 
 	public Set<BluetoothDevice> getDevices();
 

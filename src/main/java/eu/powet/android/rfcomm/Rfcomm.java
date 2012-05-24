@@ -6,6 +6,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import eu.powet.android.rfcomm.listener.BluetoothEvent;
+import eu.powet.android.rfcomm.listener.BluetoothEventListener;
+import eu.powet.android.rfcomm.listener.BluetoothServerListener;
+import eu.powet.android.rfcomm.listener.ConnectThreadListener;
+import eu.powet.android.rfcomm.listener.ConnectedThreadListener;
+import eu.powet.android.rfcomm.listener.EventListenerList;
+import eu.powet.android.rfcomm.listener.TypeEvent;
+import eu.powet.android.rfcomm.thread.BluetoothServer;
+import eu.powet.android.rfcomm.thread.ConnectThread;
+import eu.powet.android.rfcomm.thread.ConnectedThread;
+
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -27,10 +38,9 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     // Debugging
     private static final boolean D = true;
     private static final String TAG = "Rfcomm";
-
-    // Name for the SDP record when creating server socket
-    private static final String NAME_SECURE = "RfcommSecure";
-    private static final String NAME_INSECURE = "RfcommInsecure";
+    
+    // Default timeout value for incoming connections accepted
+    private static final long DEFAULT_TIMEOUT = 300000; // 5 minutes
 
     // Messages sent by Rfcomm
     public static final int MESSAGE_STATE_CHANGE = 1;
@@ -55,6 +65,7 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     private EventListenerList listenerList;
     private Context ctx;
     private boolean receiverRegistered = false;
+    private long timeout;
 
     // Constants that indicate the current connection state
     public static final int STATE_NONE = 0;			// we're doing nothing
@@ -63,12 +74,17 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     public static final int STATE_CONNECTED = 3;	// now connected to a remote device
 
     public Rfcomm(Context _ctx, UUID secureUUID, UUID unsecureUUID, Handler handler) {
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
-        mState = STATE_NONE;
+    	this(_ctx, secureUUID, unsecureUUID, handler, DEFAULT_TIMEOUT);
+    }
+    
+    public Rfcomm(Context _ctx, UUID secureUUID, UUID unsecureUUID, Handler handler, long timeout) {
+        this.mAdapter = BluetoothAdapter.getDefaultAdapter();
+        this.mState = STATE_NONE;
         this.ctx = _ctx;
         this.secureUUID = secureUUID;
         this.unsecureUUID = unsecureUUID;
-        mHandler = handler;
+        this.mHandler = handler;
+        this.timeout = timeout;
 
         if ((mAdapter != null) && mAdapter.isEnabled()) {
             Log.i(TAG, "Bluetooth adapter found and enabled on device. ");
@@ -281,25 +297,20 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
 
         // Start the thread to listen on a BluetoothServerSocket
         if (mSecureBluetoothServer == null) {
-            mSecureBluetoothServer = new BluetoothServer(Rfcomm.this, true);
+            mSecureBluetoothServer = new BluetoothServer(Rfcomm.this, true, timeout);
             mSecureBluetoothServer.addListener(this);
             mSecureBluetoothServer.start();
         }
 
         if (mInsecureBluetoothServer == null) {
-            mInsecureBluetoothServer = new BluetoothServer(Rfcomm.this, false);
+            mInsecureBluetoothServer = new BluetoothServer(Rfcomm.this, false, timeout);
             mSecureBluetoothServer.addListener(this);
             mInsecureBluetoothServer.start();
         }
     }
 
-    /**
-     * Start a ConnectThread to initiate a connection to a remote device.
-     * @param device  The BluetoothDevice to connect
-     * @param secure Socket Security type - Secure (true) , Insecure (false)
-     */
     @Override
-    public synchronized void connect(BluetoothDevice device, boolean secure) {
+    public synchronized void connect(BluetoothDevice device, boolean secure, long timeout) {
         if (D) Log.d(TAG, "connect to: " + device);
 
         // no connection attempt already made
@@ -307,7 +318,7 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
             // no active connection already set up
             if (!remoteConnections.containsKey(device)) {
                 // then we create a new connection
-                ConnectThread ct = new ConnectThread(this, device, secure);
+                ConnectThread ct = new ConnectThread(this, device, secure, timeout);
                 ct.addListener(this);
                 ct.start();
                 connectionAttempts.put(device, ct);
@@ -421,6 +432,8 @@ public class Rfcomm implements IRfcomm, BluetoothServerListener, ConnectedThread
     public void connectionLost(BluetoothDevice device) {
         // remove the device from the remoteConnections
         remoteConnections.remove(device);
+        // just in case, remove the device from connectionAttempts
+        connectionAttempts.remove(device);
 
         // Send a failure message back to the Activity
         Message msg = mHandler.obtainMessage(MESSAGE_TOAST);
