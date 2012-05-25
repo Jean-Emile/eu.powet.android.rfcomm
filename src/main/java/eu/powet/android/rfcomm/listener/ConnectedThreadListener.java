@@ -1,9 +1,16 @@
 package eu.powet.android.rfcomm.listener;
 
+import eu.powet.android.rfcomm.thread.ConnectedThread;
 import android.bluetooth.BluetoothDevice;
 
 public interface ConnectedThreadListener {
 
+	/**
+	 * Called when a new remote device is connected
+	 * @param connThread the ConnectionThread that handle the connection
+	 */	
+	void newDeviceConnected(ConnectedThread ct);
+	
 	/**
 	 * Called when the connection with the remote device
 	 * has been lost

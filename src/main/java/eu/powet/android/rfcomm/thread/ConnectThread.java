@@ -83,7 +83,6 @@ public class ConnectThread extends Thread {
     	ConnectedThread ct = new ConnectedThread(mSocket, mSocketType, timeout);
     	ct.addListener(rfcomm);
     	ct.start();
-    	if (listener != null) listener.newDeviceConnected(ct);
     }
 
     public void cancel() {

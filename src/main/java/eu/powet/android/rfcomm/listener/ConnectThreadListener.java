@@ -11,10 +11,4 @@ public interface ConnectThreadListener {
 	 * @param device the remote device concerned
 	 */
 	void connectionFailed(BluetoothDevice device);
-
-	/**
-	 * Called when a new remote device is connected
-	 * @param connThread the ConnectionThread that handle the connection
-	 */	
-	void newDeviceConnected(ConnectedThread ct);
 }

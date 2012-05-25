@@ -54,6 +54,8 @@ public class ConnectedThread extends Thread implements TimeoutThreadListener {
     public void run() {
         Log.i(TAG, "BEGIN mConnectedThread");
         
+        if (listener != null) listener.newDeviceConnected(this);
+        
         if (D) Log.i(TAG, "Starting the TimeoutThread for "+mTimeoutThread.getTime()+" milliseconds");
         mTimeoutThread.start();
         
